@@ -13,7 +13,43 @@ approximating.
 
     python3 task1_sketches.py --verify
 """
-import argparse, random
+import argparse
+import hashlib
+import math
+import random
+import zlib
+
+
+def _key_from_seed(seed):
+    """Return a fixed-size BLAKE2 key for any seed value."""
+    return hashlib.blake2b(
+        str(seed).encode("utf-8"),
+        digest_size=16
+    ).digest()
+
+
+def _hash_pair(item, key):
+    """Return two deterministic 64-bit hashes for double hashing."""
+    digest = hashlib.blake2b(
+        repr(item).encode("utf-8"),
+        digest_size=16,
+        key=key,
+    ).digest()
+
+    first = int.from_bytes(
+        digest[:8],
+        "big"
+    )
+
+    second = (
+        int.from_bytes(
+            digest[8:],
+            "big"
+        )
+        | 1
+    )
+
+    return first, second
 
 
 class BloomFilter:
@@ -28,57 +64,222 @@ class BloomFilter:
     """
 
     def __init__(self, m, k, seed=246):
-        raise NotImplementedError("write the Bloom filter")
+        if m <= 0:
+            raise ValueError(
+                "m must be positive"
+            )
+
+        if k <= 0:
+            raise ValueError(
+                "k must be positive"
+            )
+
+        self.m = m
+        self.k = k
+        self.seed = seed
+
+        self.bits = bytearray(
+            (m + 7) // 8
+        )
+
+        self._key = _key_from_seed(
+            seed
+        )
+
+    def _indices(self, item):
+        first, second = _hash_pair(
+            item,
+            self._key
+        )
+
+        for i in range(self.k):
+            yield (
+                first + i * second
+            ) % self.m
 
     def add(self, item):
-        raise NotImplementedError
+        for index in self._indices(
+            item
+        ):
+            byte_index, bit_index = divmod(
+                index,
+                8
+            )
+
+            self.bits[byte_index] |= (
+                1 << bit_index
+            )
 
     def __contains__(self, item):
-        raise NotImplementedError
+        for index in self._indices(
+            item
+        ):
+            byte_index, bit_index = divmod(
+                index,
+                8
+            )
+
+            if not (
+                self.bits[byte_index]
+                & (1 << bit_index)
+            ):
+                return False
+
+        return True
 
     def expected_fp_rate(self, n_inserted):
-        """The textbook's predicted false-positive rate after n insertions.
+        """Return the theoretical false-positive rate."""
+        if n_inserted < 0:
+            raise ValueError(
+                "n_inserted must not be negative"
+            )
 
-        §4.4.2 derives it. Return the number, do not measure it - the harness
-        measures separately and compares the two.
-        """
-        raise NotImplementedError
+        return (
+            1.0
+            - math.exp(
+                -self.k
+                * n_inserted
+                / self.m
+            )
+        ) ** self.k
 
 
 def flajolet_martin(stream, n_hashes=64, seed=246):
-    """Estimate how many DISTINCT items went past, in almost no memory.
+    """Estimate the number of distinct items in one stream pass.
 
-    §4.5. Hash each item, count trailing zeros in the hash, keep the maximum.
-    A maximum of R suggests about 2^R distinct items, because seeing R trailing
-    zeros is a 1-in-2^R event.
+    Stochastic averaging divides the hash space into fixed registers.
+    Each item updates only one register, so processing takes O(n) time
+    instead of O(n * n_hashes).
 
-    One hash gives an estimate with enormous variance, so you use many and
-    combine them. How you combine them matters a great deal:
-
-      * averaging 2^R directly is dominated by whichever hash got lucky - the
-        values are exponential, so one outlier swamps the rest
-      * the median is robust but can only ever be a power of two
-      * §4.5.3 suggests grouping, and combining twice
-
-    The harness accepts anything **within a factor of two** of the truth. That is
-    not a generous tolerance, it is an honest one: this method really is that
-    crude, and HyperLogLog exists because of it. Getting inside a factor of two
-    reliably is the requirement; getting closer than that is not expected here.
-
-    Return your estimate as a float.
+    The stream is never stored.
     """
-    raise NotImplementedError("write Flajolet-Martin")
+    if n_hashes <= 0:
+        raise ValueError(
+            "n_hashes must be positive"
+        )
+
+    maxima = [0] * n_hashes
+    item_count = 0
+
+    # If n_hashes is a power of two, the lower hash bits can choose
+    # the register efficiently without using modulo.
+    power_of_two = (
+        n_hashes
+        & (n_hashes - 1)
+    ) == 0
+
+    bucket_bits = (
+        n_hashes.bit_length() - 1
+        if power_of_two
+        else 0
+    )
+
+    bucket_mask = n_hashes - 1
+
+    for item in stream:
+        item_count += 1
+
+        # CRC32 is deterministic and implemented in C.
+        # It is much faster than creating a cryptographic BLAKE2 hash
+        # for every one of millions of stream items.
+        hashed = zlib.crc32(
+            str(item).encode("utf-8"),
+            seed & 0xFFFFFFFF,
+        )
+
+        if power_of_two:
+            # Lower bits choose one of the fixed registers.
+            bucket = (
+                hashed & bucket_mask
+            )
+
+            # Remaining bits provide the trailing-zero observation.
+            remaining = (
+                hashed >> bucket_bits
+            )
+
+            remaining_bits = (
+                32 - bucket_bits
+            )
+
+        else:
+            bucket = (
+                hashed % n_hashes
+            )
+
+            remaining = (
+                hashed // n_hashes
+            )
+
+            remaining_bits = 32
+
+        if remaining == 0:
+            trailing_zeros = remaining_bits
+        else:
+            trailing_zeros = (
+                remaining
+                & -remaining
+            ).bit_length() - 1
+
+        if (
+            trailing_zeros
+            > maxima[bucket]
+        ):
+            maxima[bucket] = (
+                trailing_zeros
+            )
+
+    if item_count == 0:
+        return 0.0
+
+    # The arithmetic mean of R is equivalent to using the geometric
+    # mean of the individual 2^R estimates.
+    average_r = (
+        sum(maxima)
+        / n_hashes
+    )
+
+    # Each register observes approximately 1/n_hashes of the stream.
+    # Multiply the register estimate by n_hashes to estimate the
+    # complete number of distinct items.
+    return float(
+        n_hashes
+        * (2.0 ** average_r)
+    )
 
 
 def reservoir_sample(stream, k, seed=246):
-    """Keep k items uniformly at random from a stream of unknown length.
+    """Keep k uniformly selected items from an unknown-length stream."""
+    if k < 0:
+        raise ValueError(
+            "k must not be negative"
+        )
 
-    §4.3. Every item that went past must end up with the same probability k/n
-    of being in your sample, and you only ever hold k of them.
+    if k == 0:
+        return []
 
-    Return a list of k items (or fewer if the stream was shorter).
-    """
-    raise NotImplementedError("write reservoir sampling")
+    rng = random.Random(seed)
+    sample = []
+
+    for i, item in enumerate(stream):
+        # Initially store the first k items.
+        if i < k:
+            sample.append(item)
+            continue
+
+        # For the (i + 1)-th item, generate a random position
+        # from 0 through i.
+        replacement_index = rng.randrange(
+            i + 1
+        )
+
+        # Replace one reservoir position with probability k/(i + 1).
+        if replacement_index < k:
+            sample[
+                replacement_index
+            ] = item
+
+    return sample
 
 
 # ------------------------------------------------------------------- harness
@@ -88,59 +289,181 @@ def verify():
 
     def check(label, ok, detail=""):
         nonlocal fails
-        print(f"  {'ok  ' if ok else 'FAIL'}  {label:<46} {detail}")
+
+        print(
+            f"  {'ok  ' if ok else 'FAIL'}  "
+            f"{label:<46} {detail}"
+        )
+
         fails += not ok
 
     # --- Bloom: no false negatives, ever
     try:
-        bf = BloomFilter(m=8192, k=5)
+        bf = BloomFilter(
+            m=8192,
+            k=5
+        )
+
     except NotImplementedError:
-        print("  BloomFilter is still a stub"); return 1
-    inserted = [f"item-{i}" for i in range(800)]
+        print(
+            "  BloomFilter is still a stub"
+        )
+        return 1
+
+    inserted = [
+        f"item-{i}"
+        for i in range(800)
+    ]
+
     for x in inserted:
         bf.add(x)
-    check("no false negatives", all(x in bf for x in inserted))
 
-    absent = [f"other-{i}" for i in range(20_000)]
-    fp = sum(1 for x in absent if x in bf) / len(absent)
-    predicted = bf.expected_fp_rate(len(inserted))
-    close = abs(fp - predicted) < max(0.02, predicted * 0.5)
-    check("measured false-positive rate matches theory", close,
-          f"measured {fp:.3%}, predicted {predicted:.3%}")
+    check(
+        "no false negatives",
+        all(
+            x in bf
+            for x in inserted
+        )
+    )
 
-    # --- Flajolet-Martin: a factor of two is what this method gives you
+    absent = [
+        f"other-{i}"
+        for i in range(20_000)
+    ]
+
+    fp = (
+        sum(
+            1
+            for x in absent
+            if x in bf
+        )
+        / len(absent)
+    )
+
+    predicted = bf.expected_fp_rate(
+        len(inserted)
+    )
+
+    close = (
+        abs(fp - predicted)
+        < max(
+            0.02,
+            predicted * 0.5
+        )
+    )
+
+    check(
+        "measured false-positive rate matches theory",
+        close,
+        (
+            f"measured {fp:.3%}, "
+            f"predicted {predicted:.3%}"
+        ),
+    )
+
+    # --- Flajolet-Martin
     try:
         distinct = 20_000
-        stream = [f"k{rng.randrange(distinct)}" for _ in range(120_000)]
-        est = flajolet_martin(stream)
-    except NotImplementedError:
-        print("  flajolet_martin is still a stub"); return 1
-    true_distinct = len(set(stream))
-    ratio = est / true_distinct
-    check("distinct estimate within a factor of 2", 0.5 <= ratio <= 2.0,
-          f"estimated {est:,.0f}, true {true_distinct:,} ({ratio:.2f}x)")
 
-    # --- Reservoir: uniform over many trials
+        stream = [
+            f"k{rng.randrange(distinct)}"
+            for _ in range(120_000)
+        ]
+
+        est = flajolet_martin(
+            stream
+        )
+
+    except NotImplementedError:
+        print(
+            "  flajolet_martin is still a stub"
+        )
+        return 1
+
+    true_distinct = len(
+        set(stream)
+    )
+
+    ratio = (
+        est
+        / true_distinct
+    )
+
+    check(
+        "distinct estimate within a factor of 2",
+        0.5 <= ratio <= 2.0,
+        (
+            f"estimated {est:,.0f}, "
+            f"true {true_distinct:,} "
+            f"({ratio:.2f}x)"
+        ),
+    )
+
+    # --- Reservoir sampling
     try:
         counts = [0] * 20
         trials = 4000
-        for t in range(trials):
-            s = reservoir_sample(range(20), 5, seed=t)
-            for i in s:
-                counts[i] += 1
-    except NotImplementedError:
-        print("  reservoir_sample is still a stub"); return 1
-    expected = trials * 5 / 20
-    spread = (max(counts) - min(counts)) / expected
-    check("reservoir is uniform across items", spread < 0.15,
-          f"spread {spread:.1%} around {expected:.0f}")
 
-    print(f"\n  {'all ok' if not fails else str(fails) + ' failed'}")
-    return 1 if fails else 0
+        for t in range(trials):
+            sample = reservoir_sample(
+                range(20),
+                5,
+                seed=t
+            )
+
+            for item in sample:
+                counts[item] += 1
+
+    except NotImplementedError:
+        print(
+            "  reservoir_sample is still a stub"
+        )
+        return 1
+
+    expected = (
+        trials
+        * 5
+        / 20
+    )
+
+    spread = (
+        max(counts)
+        - min(counts)
+    ) / expected
+
+    check(
+        "reservoir is uniform across items",
+        spread < 0.15,
+        (
+            f"spread {spread:.1%} "
+            f"around {expected:.0f}"
+        ),
+    )
+
+    print(
+        f"\n  "
+        f"{'all ok' if not fails else str(fails) + ' failed'}"
+    )
+
+    return (
+        1
+        if fails
+        else 0
+    )
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser()
-    p.add_argument("--verify", action="store_true")
-    a = p.parse_args()
-    raise SystemExit(verify() if a.verify else p.print_help())
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--verify",
+        action="store_true"
+    )
+
+    args = parser.parse_args()
+
+    raise SystemExit(
+        verify()
+        if args.verify
+        else parser.print_help()
+    )

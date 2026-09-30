@@ -1,0 +1,89 @@
+{
+  "runs": [
+    {
+      "n": 100000,
+      "true_distinct": 36702,
+      "exact_s": 0.26375049992930144,
+      "exact_peak_bytes": 3925492,
+      "fm_estimate": 47355.684683023865,
+      "fm_s": 0.7235521998954937,
+      "fm_peak_bytes": 4234,
+      "fm_ratio": 1.2902753169588541
+    },
+    {
+      "n": 200000,
+      "true_distinct": 73410,
+      "exact_s": 0.5832623000023887,
+      "exact_peak_bytes": 5760963,
+      "fm_estimate": 79642.45098368001,
+      "fm_s": 1.3878392000915483,
+      "fm_peak_bytes": 4026,
+      "fm_ratio": 1.0848992096945922
+    },
+    {
+      "n": 400000,
+      "true_distinct": 146970,
+      "exact_s": 1.0521848999196663,
+      "exact_peak_bytes": 11591182,
+      "fm_estimate": 204341.82474797376,
+      "fm_s": 2.821215200005099,
+      "fm_peak_bytes": 4005,
+      "fm_ratio": 1.3903641882559281
+    },
+    {
+      "n": 100000,
+      "true_distinct": 36702,
+      "exact_s": 0.28098030004184693,
+      "exact_peak_bytes": 3925492,
+      "fm_estimate": 47355.684683023865,
+      "fm_s": 0.7038176000351086,
+      "fm_peak_bytes": 5482,
+      "fm_ratio": 1.2902753169588541
+    },
+    {
+      "n": 200000,
+      "true_distinct": 73410,
+      "exact_s": 0.6021620000246912,
+      "exact_peak_bytes": 5760963,
+      "fm_estimate": 79642.45098368001,
+      "fm_s": 1.501363500021398,
+      "fm_peak_bytes": 4026,
+      "fm_ratio": 1.0848992096945922
+    },
+    {
+      "n": 400000,
+      "true_distinct": 146970,
+      "exact_s": 1.2039368000114337,
+      "exact_peak_bytes": 11591182,
+      "fm_estimate": 204341.82474797376,
+      "fm_s": 2.6789040999719873,
+      "fm_peak_bytes": 4005,
+      "fm_ratio": 1.3903641882559281
+    },
+    {
+      "n": 1600000,
+      "true_distinct": 587625,
+      "exact_s": 4.182579100015573,
+      "exact_peak_bytes": 46647456,
+      "fm_estimate": 507526.982793244,
+      "fm_s": 10.822267400100827,
+      "fm_peak_bytes": 3989,
+      "fm_ratio": 0.8636919511478307
+    },
+    {
+      "n": 6400000,
+      "true_distinct": 2349909,
+      "exact_s": 29.137826699996367,
+      "exact_peak_bytes": 188287470,
+      "fm_estimate": 2998116.4718353967,
+      "fm_s": 54.39058579993434,
+      "fm_peak_bytes": 5392,
+      "fm_ratio": 1.2758436483435727
+    }
+  ],
+  "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python": "3.14.7"
+  }
+}
