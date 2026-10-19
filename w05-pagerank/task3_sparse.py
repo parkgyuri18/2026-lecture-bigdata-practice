@@ -3,19 +3,15 @@
 
 Textbook §5.2 (efficient PageRank), §5.2.1 - §5.2.3.
 
-`DenseMatrix` is PageRank written the way the equations are written: build the
-transition matrix M, multiply. It is correct, it is easy to read, and it stores
-n^2 numbers for a graph with almost no edges.
+`DenseMatrix` is PageRank written the way the equations are written: build M,
+multiply. It is correct, it is easy to read, and it stores n^2 numbers for a
+graph with almost no edges.
 
-The web's matrix is about 99.9999% zeros. Storing them is the problem, and
-§5.2 is the chapter about not doing that.
+The sparse implementation below keeps the supplied adjacency list and two
+rank vectors instead of materialising the mostly-zero transition matrix.
 
     python3 bench.py
     python3 bench.py --yours
-
-Correctness first: the harness compares your ranks against the dense version
-element by element. A fast PageRank that ranks pages differently is a different
-algorithm, not a faster one.
 """
 
 
@@ -62,34 +58,97 @@ class DenseMatrix:
 
 
 class YourPageRank:
-    """Your PageRank.
+    """Sparse PageRank using the graph's adjacency-list representation.
 
-        __init__(beta=0.85, tol=1e-10, max_iter=100)
-        run(graph) -> {node: rank}
-        memory_floats() -> the largest number of floats you held at once
-
-    Same ranks, to within 1e-9 per node. Far less memory.
-
-    `graph` is {node: [out-neighbours]}. Note what that already is: an adjacency
-    list, which is the sparse representation. The dense version throws that
-    structure away and then pays to get it back.
-
-    Two things to be careful about, and they are the same two as Task 1:
-
-      * dead ends, whose rank has to go somewhere
-      * the teleport term, which touches every node and is therefore the one
-        part that looks like it needs a dense operation - it does not, and
-        working out why is the point of §5.2.3
-
-    `memory_floats()` is on your honour and the harness reads it. Count the
-    numbers you actually hold at once.
+    The implementation stores no n-by-n transition matrix. During iteration it
+    keeps only the current and next rank vectors. The teleport contribution and
+    the redistributed dead-end mass are each a single value shared by all
+    nodes, so neither requires a dense matrix operation.
     """
 
     def __init__(self, beta=0.85, tol=1e-10, max_iter=100):
-        raise NotImplementedError("write your PageRank")
+        if not 0.0 <= beta <= 1.0:
+            raise ValueError("beta must be between 0 and 1")
+        if tol < 0:
+            raise ValueError("tol must be non-negative")
+        if max_iter < 0:
+            raise ValueError("max_iter must be non-negative")
+
+        self.beta = beta
+        self.tol = tol
+        self.max_iter = max_iter
+        self.iterations = 0
+        self._memory_floats = 0
 
     def run(self, graph):
-        raise NotImplementedError
+        nodes = list(graph)
+        n = len(nodes)
+
+        if n == 0:
+            self.iterations = 0
+            self._memory_floats = 0
+            return {}
+
+        index = {node: i for i, node in enumerate(nodes)}
+
+        # Convert page names to integer positions once. These are adjacency
+        # indices, not floating-point matrix entries.
+        outgoing = [
+            tuple(index[target] for target in graph[node])
+            for node in nodes
+        ]
+
+        ranks = [1.0 / n] * n
+        self._memory_floats = n
+        self.iterations = 0
+
+        teleport = (1.0 - self.beta) / n
+
+        for step in range(1, self.max_iter + 1):
+            # Dead ends behave as if they link uniformly to every page. Their
+            # total contribution is one shared scalar, not n separate columns.
+            dangling_rank = sum(
+                ranks[i]
+                for i, targets in enumerate(outgoing)
+                if not targets
+            )
+
+            common = teleport + self.beta * dangling_rank / n
+            new_ranks = [common] * n
+
+            # At this point the largest floating-point state is the two rank
+            # vectors plus a few shared scalar values.
+            self._memory_floats = max(
+                self._memory_floats,
+                2 * n + 6
+            )
+
+            # Push rank along only the edges that actually exist: O(n + m)
+            # work per iteration instead of scanning n^2 matrix positions.
+            for source, targets in enumerate(outgoing):
+                if not targets:
+                    continue
+
+                share = self.beta * ranks[source] / len(targets)
+                for target in targets:
+                    new_ranks[target] += share
+
+            delta = sum(
+                abs(new_ranks[i] - ranks[i])
+                for i in range(n)
+            )
+
+            ranks = new_ranks
+            self.iterations = step
+
+            if delta < self.tol:
+                break
+
+        return {
+            node: ranks[i]
+            for i, node in enumerate(nodes)
+        }
 
     def memory_floats(self):
-        raise NotImplementedError
+        """Largest number of floating-point values held during iteration."""
+        return self._memory_floats

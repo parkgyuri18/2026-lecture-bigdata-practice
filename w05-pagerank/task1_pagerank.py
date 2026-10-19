@@ -30,27 +30,106 @@ def pagerank(graph, beta=0.85, iterations=100, tol=1e-10):
     `beta` is the probability the surfer follows a link. With probability
     1 - beta they teleport to a node chosen uniformly.
 
-    You have to handle both of these, and the textbook handles them the same way:
+    Dead-end rank is redistributed uniformly to every node. This is equivalent
+    to treating a dead end as if it linked to every page. Teleportation prevents
+    a spider trap from permanently absorbing all rank.
 
-      dead ends    a node with no out-links. Where does its rank go, and where
-                   should it go instead?
-      spider traps a group of nodes that only link to each other. Without
-                   teleporting, they end up with all of it
-
-    Stop early when the ranks stop moving - `tol` is the L1 change below which
-    you should call it converged. Return the ranks, and set `pagerank.iterations`
-    to how many you actually used, because Task 2 measures that.
+    Stop early when the L1 change is smaller than `tol`, and expose the number
+    of iterations actually used through `pagerank.iterations`.
     """
-    raise NotImplementedError("implement PageRank")
+    nodes = list(graph)
+    n = len(nodes)
+
+    if n == 0:
+        pagerank.iterations = 0
+        return {}
+
+    if not 0.0 <= beta <= 1.0:
+        raise ValueError("beta must be between 0 and 1")
+    if iterations < 0:
+        raise ValueError("iterations must be non-negative")
+    if tol < 0:
+        raise ValueError("tol must be non-negative")
+
+    ranks = {node: 1.0 / n for node in nodes}
+    pagerank.iterations = 0
+
+    for step in range(1, iterations + 1):
+        # Every node receives the same teleport contribution.
+        base = (1.0 - beta) / n
+
+        # A dead end has nowhere to send its rank. Treat it as linking to every
+        # node so that its rank is conserved rather than leaking away.
+        dangling_rank = sum(
+            ranks[node]
+            for node in nodes
+            if not graph[node]
+        )
+        dangling_share = beta * dangling_rank / n
+
+        new_ranks = {
+            node: base + dangling_share
+            for node in nodes
+        }
+
+        # Push each source page's rank only along its actual outgoing links.
+        for source in nodes:
+            outgoing = graph[source]
+            if not outgoing:
+                continue
+
+            share = beta * ranks[source] / len(outgoing)
+            for target in outgoing:
+                new_ranks[target] += share
+
+        change = sum(
+            abs(new_ranks[node] - ranks[node])
+            for node in nodes
+        )
+
+        ranks = new_ranks
+        pagerank.iterations = step
+
+        if change < tol:
+            break
+
+    return ranks
 
 
 def pagerank_no_teleport(graph, iterations=100):
-    """The broken version: beta = 1, no teleporting. Build this too.
+    """The deliberately broken PageRank version.
 
-    It exists so you can watch both failures happen rather than take them on
-    trust. The harness checks that it really does fail.
+    It uses beta = 1, provides no teleportation, and drops rank that reaches a
+    dead end. Consequently a dead end drains rank out of the graph and a spider
+    trap can eventually absorb almost all remaining rank.
     """
-    raise NotImplementedError("implement the broken version")
+    nodes = list(graph)
+    n = len(nodes)
+
+    if n == 0:
+        return {}
+    if iterations < 0:
+        raise ValueError("iterations must be non-negative")
+
+    ranks = {node: 1.0 / n for node in nodes}
+
+    for _ in range(iterations):
+        new_ranks = {node: 0.0 for node in nodes}
+
+        for source in nodes:
+            outgoing = graph[source]
+
+            # Deliberately do nothing for a dead end: its rank disappears.
+            if not outgoing:
+                continue
+
+            share = ranks[source] / len(outgoing)
+            for target in outgoing:
+                new_ranks[target] += share
+
+        ranks = new_ranks
+
+    return ranks
 
 
 # ------------------------------------------------------------------- harness

@@ -13,7 +13,7 @@ that was slower at small scale is still running when yours has stopped.
 
 Optional. Not part of the assignment.
 """
-import argparse, random, time, tracemalloc
+import argparse, os, random, sys, time, tracemalloc
 
 
 def build(nodes, avg_out=8, seed=246):
@@ -36,7 +36,40 @@ def local_pagerank(edges, nodes, beta=0.85, iterations=10):
 
     Return {node: rank} and set local_pagerank.peak_bytes.
     """
-    raise NotImplementedError("TASK 4a - reuse your sparse PageRank")
+    # Node IDs produced by build() are the integers 0 .. nodes - 1, so a
+    # list-of-lists is more compact and faster than a dict-of-lists here.
+    links = [[] for _ in range(nodes)]
+    for src, dst in edges:
+        links[src].append(dst)
+
+    ranks = [1.0 / nodes] * nodes
+
+    for _ in range(iterations):
+        # A dangling node has no outgoing edge. Treat its rank as if it were
+        # linked uniformly to every node, so total rank remains one.
+        dangling_rank = sum(
+            ranks[node] for node, outs in enumerate(links) if not outs
+        )
+        base = ((1.0 - beta) + beta * dangling_rank) / nodes
+        next_ranks = [base] * nodes
+
+        for src, outs in enumerate(links):
+            if not outs:
+                continue
+            share = beta * ranks[src] / len(outs)
+            for dst in outs:
+                next_ranks[dst] += share
+
+        ranks = next_ranks
+
+    # main() starts tracemalloc before calling us. Keep the requested peak
+    # measurement on the function as well as returning the complete ranking.
+    if tracemalloc.is_tracing():
+        local_pagerank.peak_bytes = tracemalloc.get_traced_memory()[1]
+    else:
+        local_pagerank.peak_bytes = 0
+
+    return dict(enumerate(ranks))
 
 
 def spark_pagerank(edges, nodes, beta=0.85, iterations=10):
@@ -50,9 +83,21 @@ def spark_pagerank(edges, nodes, beta=0.85, iterations=10):
     small, visible in the output, and task4.md asks you to find it - do not
     "fix" this function, explain it.
     """
+    # Make the driver and Python workers use the exact same interpreter.
+    # Limiting local workers also avoids starting one worker per logical CPU,
+    # which can be unstable on some Windows/Python combinations.
+    os.environ["PYSPARK_PYTHON"] = sys.executable
+    os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
+
     from pyspark.sql import SparkSession
-    spark = (SparkSession.builder.master("local[*]").appName("w05")
-             .config("spark.ui.enabled", "false").getOrCreate())
+    spark = (SparkSession.builder.master("local[4]").appName("w05")
+             .config("spark.ui.enabled", "false")
+             .config("spark.default.parallelism", "4")
+             .config("spark.python.worker.reuse", "true")
+             .config("spark.python.worker.faulthandler.enabled", "true")
+             .config("spark.driver.host", "127.0.0.1")
+             .config("spark.driver.bindAddress", "127.0.0.1")
+             .getOrCreate())
     sc = spark.sparkContext
     sc.setLogLevel("ERROR")
 
