@@ -1,0 +1,9 @@
+Command:
+py task4_spark.py --nodes 50000 --spark
+
+50,000 nodes, 376,379 edges, built in 0.1s
+
+single process       2.17s   peak     14.3 MB   top=147
+spark              135.47s                    top=147   sum=0.9959
+
+spark is 62.4x the single process here
