@@ -1,0 +1,75 @@
+{
+  "runs": [
+    {
+      "support": 400,
+      "frequent_pairs": 249,
+      "peak_counters": 10585,
+      "seconds": 0.6068843000102788,
+      "peak_bytes": 1148348
+    },
+    {
+      "support": 200,
+      "frequent_pairs": 776,
+      "peak_counters": 58626,
+      "seconds": 0.8801983000012115,
+      "peak_bytes": 6714248
+    },
+    {
+      "support": 100,
+      "frequent_pairs": 2244,
+      "peak_counters": 273701,
+      "seconds": 2.0025180999655277,
+      "peak_bytes": 28565024
+    },
+    {
+      "support": 50,
+      "frequent_pairs": 6397,
+      "peak_counters": 820259,
+      "seconds": 2.8715370999416336,
+      "peak_bytes": 107747800
+    },
+    {
+      "support": 25,
+      "frequent_pairs": 17045,
+      "peak_counters": 893456,
+      "seconds": 3.169446900021285,
+      "peak_bytes": 107744896
+    },
+    {
+      "support": 12,
+      "frequent_pairs": 43116,
+      "peak_counters": 893456,
+      "seconds": 2.9792768999468535,
+      "peak_bytes": 109847456
+    },
+    {
+      "support": 6,
+      "frequent_pairs": 101938,
+      "peak_counters": 893456,
+      "seconds": 3.2687102999771014,
+      "peak_bytes": 126485192
+    },
+    {
+      "support": 3,
+      "frequent_pairs": 250054,
+      "peak_counters": 893456,
+      "seconds": 4.000378400087357,
+      "peak_bytes": 163721152
+    },
+    {
+      "support": 1,
+      "frequent_pairs": 893456,
+      "peak_counters": 893456,
+      "seconds": 5.154643299989402,
+      "peak_bytes": 334153232
+    }
+  ],
+  "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+    "python": "3.14.7",
+    "ram_bytes": 16788488192,
+    "available_ram_bytes_at_start": 1939587072,
+    "execution_context": "Codex desktop local execution; process visibility may be sandbox-limited"
+  }
+}

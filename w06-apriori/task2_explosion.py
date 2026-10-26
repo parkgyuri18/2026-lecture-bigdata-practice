@@ -19,9 +19,26 @@ OUT = os.path.join(HERE, "out")
 
 
 def machine():
-    return {"platform": platform.platform(),
+    info = {"platform": platform.platform(),
             "processor": platform.processor() or platform.machine(),
             "python": platform.python_version()}
+    if os.name == 'nt':
+        import ctypes, winreg
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [('length', ctypes.c_ulong), ('load', ctypes.c_ulong)] + [
+                (name, ctypes.c_ulonglong) for name in
+                ('total', 'available', 'page_total', 'page_available',
+                 'virtual_total', 'virtual_available', 'extended')]
+        status = MemoryStatus()
+        status.length = ctypes.sizeof(status)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            info['ram_bytes'] = status.total
+            info['available_ram_bytes_at_start'] = status.available
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                           r'HARDWARE\DESCRIPTION\System\CentralProcessor\0') as key:
+            info['processor'] = winreg.QueryValueEx(key, 'ProcessorNameString')[0].strip()
+    info['execution_context'] = 'Codex desktop local execution; process visibility may be sandbox-limited'
+    return info
 
 
 def main():
@@ -34,6 +51,9 @@ def main():
     from task3_pcy import PlainApriori
     baskets = bench.build()
 
+    path = os.path.join(OUT, "explosion.json")
+    prior = json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {"runs": []}
+    prior['machine'] = machine()
     rows = []
     for support in [int(x) for x in a.supports.split(",")]:
         algo = PlainApriori(support)
@@ -48,15 +68,14 @@ def main():
                "peak_counters": algo.peak_counters, "seconds": elapsed,
                "peak_bytes": peak_bytes}
         rows.append(row)
+        prior['runs'].append(row)
+        with open(path, 'w', encoding='utf-8') as output:
+            json.dump(prior, output, indent=2)
         print(f"  support {support:>5}   pairs {len(pairs):>7,}   "
               f"counters {algo.peak_counters:>10,}   "
               f"{elapsed:>7.2f}s   {peak_bytes / 1e6:>8.1f} MB")
+        del pairs, algo
 
-    path = os.path.join(OUT, "explosion.json")
-    prior = json.load(open(path)) if os.path.exists(path) else {"runs": []}
-    prior["machine"] = machine()
-    prior["runs"].extend(rows)
-    json.dump(prior, open(path, "w"), indent=2)
     print(f"\n  -> out/explosion.json  ({len(prior['runs'])} run(s))")
     print("  Keep halving the support until it is unbearable. Record where.")
 

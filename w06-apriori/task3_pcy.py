@@ -20,6 +20,7 @@ is not an optimisation.
 """
 from collections import Counter
 from itertools import combinations
+from array import array
 
 
 class PlainApriori:
@@ -75,8 +76,58 @@ class YourAlgorithm:
         observation.md asks about it
     """
 
-    def __init__(self, support):
-        raise NotImplementedError("write your algorithm")
+    def __init__(self, support, buckets=1_000_003):
+        if support < 1 or buckets < 1:
+            raise ValueError("support and buckets must be positive")
+        self.support = support
+        self.buckets = buckets
+        self.peak_counters = 0
+
+    def _bucket(self, a, b):
+        # IDs are stable within both passes; mix before reducing modulo buckets.
+        x = (a * 0x9e3779b1) ^ (b * 0x85ebca77)
+        return (x ^ (x >> 16)) % self.buckets
 
     def run(self, baskets):
-        raise NotImplementedError
+        baskets = list(baskets)
+        self.peak_counters = 0
+        ids, singles = {}, Counter()
+        buckets = array('Q', [0]) * self.buckets
+        self.bucket_bytes = buckets.itemsize * self.buckets
+        for basket in baskets:
+            items = []
+            for item in set(basket):
+                if item not in ids:
+                    ids[item] = len(ids)
+                items.append(ids[item])
+                singles[item] += 1
+            for a, b in combinations(sorted(items), 2):
+                h = self._bucket(a, b)
+                if buckets[h] < self.support:
+                    buckets[h] += 1
+        bitmap = bytearray((self.buckets + 7) // 8)
+        for h, count in enumerate(buckets):
+            if count >= self.support:
+                bitmap[h >> 3] |= 1 << (h & 7)
+        self.bitmap_bytes = len(bitmap)
+        del buckets
+        frequent = {ids[item] for item, count in singles.items()
+                    if count >= self.support}
+        del singles
+        counts = Counter()
+        for basket in baskets:
+            items = sorted(ids[item] for item in set(basket) if ids[item] in frequent)
+            for a, b in combinations(items, 2):
+                h = self._bucket(a, b)
+                if bitmap[h >> 3] & (1 << (h & 7)):
+                    counts[a, b] += 1
+            self.peak_counters = max(self.peak_counters, len(counts))
+        labels = {value: key for key, value in ids.items()}
+        # Replace the counter dictionary progressively so output does not duplicate
+        # all surviving counters at once.
+        result = {}
+        while counts:
+            (a, b), count = counts.popitem()
+            if count >= self.support:
+                result[frozenset((labels[a], labels[b]))] = count
+        return result
