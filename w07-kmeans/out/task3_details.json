@@ -1,0 +1,22 @@
+{
+  "python": "3.13.2",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "baseline": {
+    "calls": 10320000,
+    "sse": 10737882.944550687,
+    "time": 40.212489699944854
+  },
+  "yours": {
+    "calls": 1222968,
+    "sse": 10737882.944550687,
+    "time": 13.110730199841782
+  },
+  "cut": 0.8814953488372093,
+  "drift": 0.0,
+  "first_iteration_calls": 240012,
+  "first_iteration_fraction": 0.19625370410345977,
+  "pruned_by_lower": 481499,
+  "pruned_by_separation": 286519,
+  "full_scans": 91982,
+  "iterations": 43
+}

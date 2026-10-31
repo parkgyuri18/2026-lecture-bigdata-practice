@@ -1,0 +1,199 @@
+{
+  "runs": [
+    {
+      "dim": 2,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 0.002707499518993541,
+      "max": 1.3220375279587933,
+      "mean": 0.5257915933968302,
+      "stdev": 0.24891252173718406,
+      "contrast": 487.28726235572304,
+      "relative_stdev": 0.4734052899726043,
+      "mean_over_sqrt_dim": 0.3717908011817786,
+      "seconds": 0.04693950014188886,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 5,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 0.04617397898589186,
+      "max": 1.6963861006276961,
+      "mean": 0.881928064086292,
+      "stdev": 0.24720117893752488,
+      "contrast": 35.739006208367165,
+      "relative_stdev": 0.28029630647215414,
+      "mean_over_sqrt_dim": 0.3944102205123479,
+      "seconds": 0.05061480007134378,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 10,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 0.4561524293209037,
+      "max": 2.1635614065456954,
+      "mean": 1.2732417460456367,
+      "stdev": 0.24664692949553088,
+      "contrast": 3.743066719532097,
+      "relative_stdev": 0.19371571051730999,
+      "mean_over_sqrt_dim": 0.40263439295138975,
+      "seconds": 0.06730909994803369,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 20,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 0.8375187577811833,
+      "max": 2.7531384385724076,
+      "mean": 1.8147003448159824,
+      "stdev": 0.24381501379402945,
+      "contrast": 2.287255853070355,
+      "relative_stdev": 0.13435552293277006,
+      "mean_over_sqrt_dim": 0.40577933298008445,
+      "seconds": 0.11912989988923073,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 50,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 1.9433640619249584,
+      "max": 3.729925029081857,
+      "mean": 2.866763266136634,
+      "stdev": 0.23655307968404435,
+      "contrast": 0.9193135769873496,
+      "relative_stdev": 0.08251573559571693,
+      "mean_over_sqrt_dim": 0.40542154910834177,
+      "seconds": 0.23485460015945137,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 100,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 3.205748848837524,
+      "max": 4.908937469185048,
+      "mean": 4.067100274650846,
+      "stdev": 0.2413324850355599,
+      "contrast": 0.5312919697265549,
+      "relative_stdev": 0.05933772681724153,
+      "mean_over_sqrt_dim": 0.4067100274650846,
+      "seconds": 0.4869234000798315,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 200,
+      "points": 1000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 4.870873045879602,
+      "max": 6.70551197752036,
+      "mean": 5.774458221194352,
+      "stdev": 0.24073698539472085,
+      "contrast": 0.37665505020557394,
+      "relative_stdev": 0.04168996920111552,
+      "mean_over_sqrt_dim": 0.4083158565884935,
+      "seconds": 0.8470000000670552,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 100,
+      "points": 250,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 3.0592341618499423,
+      "max": 4.937511219450206,
+      "mean": 4.0812794949874664,
+      "stdev": 0.24000960194479393,
+      "contrast": 0.6139696924881537,
+      "relative_stdev": 0.058807440715483515,
+      "mean_over_sqrt_dim": 0.40812794949874664,
+      "seconds": 0.40008940012194216,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    },
+    {
+      "dim": 100,
+      "points": 2000,
+      "pairs": 20000,
+      "seed": 246,
+      "min": 3.1657836243960427,
+      "max": 5.045946023977511,
+      "mean": 4.07180923853851,
+      "stdev": 0.24212110519260804,
+      "contrast": 0.5939011071674741,
+      "relative_stdev": 0.059462782023529254,
+      "mean_over_sqrt_dim": 0.40718092385385096,
+      "seconds": 0.8949528001248837,
+      "session": "2026-10-31T10:56:13.250195+00:00",
+      "machine": {
+        "platform": "Windows-11-10.0.26200-SP0",
+        "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+        "python": "3.14.7",
+        "logical_cpus": 16
+      }
+    }
+  ],
+  "machine": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "12th Gen Intel(R) Core(TM) i5-1240P",
+    "python": "3.14.7",
+    "logical_cpus": 16
+  }
+}
